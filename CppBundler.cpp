@@ -32,6 +32,7 @@ public:
       return;
     }
 
+    TheRewriter.RemoveText(InclusionSourceRanges.back());
     InclusionSourceRanges.pop_back();
   }
 
