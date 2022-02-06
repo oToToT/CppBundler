@@ -10,7 +10,7 @@ This tool is based on LLVM/Clang, so please install them first.
 If you are using Ubuntu, you could install these 2 packages:
 
 ```bash
-apt install llvm-dev libclang-dev
+# apt install llvm-dev libclang-dev
 ```
 
 ## Build
@@ -24,3 +24,7 @@ $ ./cpp-bundle FILE [OPTIONS]...
 ## Options
 
 Since this tool is based on LLVM/Clang preprocessor, you could use the same options to bundle your code.
+
+## Example Use Case
+
+It is common to use library in online competitive programming contests like Codeforces, AtCoder, etc. However, this kind of contest only allow you to submit one single C++ code. Therefore, if we modularize our own library, we need to bundle them.
