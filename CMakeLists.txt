@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 project("CppBundler" VERSION 1.0 LANGUAGES C CXX)
 
-find_package(LLVM 10.0.0 REQUIRED CONFIG)
+find_package(LLVM REQUIRED CONFIG)
 find_package(Clang REQUIRED CONFIG)
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
@@ -19,4 +19,4 @@ add_definitions(${LLVM_DEFINITIONS_LIST})
 add_executable(cpp-bundle CppBundler.cpp)
 
 # Link against LLVM libraries
-target_link_libraries(cpp-bundle LLVM clangTooling)
+target_link_libraries(cpp-bundle PRIVATE LLVM clang-cpp)
