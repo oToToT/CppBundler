@@ -7,7 +7,7 @@
 class CppExpanderCallback : public clang::PPCallbacks {
 public:
   CppExpanderCallback(clang::Rewriter &R) : TheRewriter(R) {
-    BeginLoc.emplace_back(clang::SourceLocation(), clang::FileID());
+    InclusionSourceRanges.push_back({});
   }
   void InclusionDirective(clang::SourceLocation HashLoc,
                           const clang::Token &IncludeTok,
@@ -20,9 +20,19 @@ public:
                           clang::SrcMgr::CharacteristicKind FileType) final {
     if (FileType != clang::SrcMgr::C_User) {
       return;
-   }
+    }
 
-    BeginLoc.back().first = HashLoc;
+    InclusionSourceRanges.emplace_back(HashLoc, FilenameRange.getEnd());
+  }
+
+  void FileSkipped(const clang::FileEntryRef &SkippedFile,
+                   const clang::Token &FilenameTok,
+                   clang::SrcMgr::CharacteristicKind FileType) final {
+    if (FileType != clang::SrcMgr::C_User) {
+      return;
+    }
+
+    InclusionSourceRanges.pop_back();
   }
 
   void FileChanged(clang::SourceLocation Loc,
@@ -32,34 +42,35 @@ public:
     if (FileType != clang::SrcMgr::C_User) {
       return;
     }
+    if (Reason != clang::PPCallbacks::ExitFile) {
+      return;
+    }
 
     auto &SM = TheRewriter.getSourceMgr();
-
-    if (Reason == clang::PPCallbacks::EnterFile) {
-      if (BeginLoc.back().first.isValid()) {
-        BeginLoc.back().second = SM.getFileID(Loc);
-      }
-      BeginLoc.emplace_back(clang::SourceLocation(), clang::FileID());
-    } else if (Reason == clang::PPCallbacks::ExitFile) {
-      auto BLoc = BeginLoc.back().first;
-      auto FID = BeginLoc.back().second;
-      if (BLoc.isValid() and FID.isValid()) {
-        clang::SourceRange InclusionRange(BLoc, Loc);
-        
-        const auto &IncludedBuffer = TheRewriter.getEditBuffer(FID);
-        std::string IncludedContent;
-        llvm::raw_string_ostream IncludedStream(IncludedContent);
-        IncludedBuffer.write(IncludedStream).flush();
-
-        TheRewriter.ReplaceText(InclusionRange, IncludedContent);
-      }
-      BeginLoc.pop_back();
+    if (SM.isWrittenInBuiltinFile(Loc)) {
+      return;
     }
+
+    auto IncludeFileLoc = SM.getLocForStartOfFile(PrevFID);
+    if (IncludeFileLoc.isInvalid()) {
+      return;
+    }
+    if (SM.getFileCharacteristic(IncludeFileLoc) != clang::SrcMgr::C_User) {
+      return;
+    }
+
+    const auto &IncludedBuffer = TheRewriter.getEditBuffer(PrevFID);
+    std::string IncludedContent;
+    llvm::raw_string_ostream IncludedStream(IncludedContent);
+    IncludedBuffer.write(IncludedStream).flush();
+
+    TheRewriter.ReplaceText(InclusionSourceRanges.back(), IncludedContent);
+    InclusionSourceRanges.pop_back();
   }
 
 private:
   clang::Rewriter &TheRewriter;
-  llvm::SmallVector<std::pair<clang::SourceLocation, clang::FileID>, 32> BeginLoc;
+  llvm::SmallVector<clang::SourceRange, 32> InclusionSourceRanges;
 };
 
 class CppExpanderAction : public clang::PreprocessOnlyAction {
@@ -102,5 +113,6 @@ int main(int argc, const char *argv[]) {
 
   clang::tooling::FixedCompilationDatabase CompileDb(".", std::move(Args));
   clang::tooling::ClangTool Tool(CompileDb, Sources);
-  return Tool.run(clang::tooling::newFrontendActionFactory<CppExpanderAction>().get());
+  return Tool.run(
+      clang::tooling::newFrontendActionFactory<CppExpanderAction>().get());
 }
