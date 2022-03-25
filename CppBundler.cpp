@@ -92,7 +92,7 @@ protected:
 };
 
 static inline void printHelpMessage() {
-  llvm::outs() << "Usage: cpp-expander FILE [OPTIONS]...\n";
+  llvm::outs() << "Usage: cpp-bundle FILE [OPTIONS]...\n";
 }
 
 int main(int argc, const char *argv[]) {
