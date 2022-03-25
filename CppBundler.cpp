@@ -4,9 +4,9 @@
 #include "clang/Tooling/CompilationDatabase.h"
 #include "clang/Tooling/Tooling.h"
 
-class CppExpanderCallback : public clang::PPCallbacks {
+class CppBundlerCallback : public clang::PPCallbacks {
 public:
-  CppExpanderCallback(clang::Rewriter &R) : TheRewriter(R) {
+  CppBundlerCallback(clang::Rewriter &R) : TheRewriter(R) {
     InclusionSourceRanges.push_back({});
   }
   void InclusionDirective(clang::SourceLocation HashLoc,
@@ -74,7 +74,7 @@ private:
   llvm::SmallVector<clang::SourceRange, 32> InclusionSourceRanges;
 };
 
-class CppExpanderAction : public clang::PreprocessOnlyAction {
+class CppBundlerAction : public clang::PreprocessOnlyAction {
 protected:
   virtual void ExecuteAction() {
     const auto &CI = getCompilerInstance();
@@ -83,7 +83,7 @@ protected:
 
     clang::Rewriter TheRewriter;
     TheRewriter.setSourceMgr(SM, CI.getLangOpts());
-    PP.addPPCallbacks(std::make_unique<CppExpanderCallback>(TheRewriter));
+    PP.addPPCallbacks(std::make_unique<CppBundlerCallback>(TheRewriter));
 
     clang::PreprocessOnlyAction::ExecuteAction();
 
@@ -115,5 +115,5 @@ int main(int argc, const char *argv[]) {
   clang::tooling::FixedCompilationDatabase CompileDb(".", std::move(Args));
   clang::tooling::ClangTool Tool(CompileDb, Sources);
   return Tool.run(
-      clang::tooling::newFrontendActionFactory<CppExpanderAction>().get());
+      clang::tooling::newFrontendActionFactory<CppBundlerAction>().get());
 }
