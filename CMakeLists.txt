@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project("CppBundler" VERSION 1.0 LANGUAGES C CXX)
+project("CppBundler" VERSION 1.1 LANGUAGES C CXX)
 
 find_package(LLVM REQUIRED CONFIG)
 find_package(Clang REQUIRED CONFIG)

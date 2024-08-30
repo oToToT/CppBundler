@@ -9,27 +9,21 @@ public:
   CppBundlerCallback(clang::Rewriter &R) : TheRewriter(R) {
     InclusionSourceRanges.push_back({});
   }
-#if LLVM_VERSION_MAJOR >= 15
   void InclusionDirective(clang::SourceLocation HashLoc,
                           const clang::Token &IncludeTok,
                           llvm::StringRef FileName, bool IsAngled,
                           clang::CharSourceRange FilenameRange,
-                          llvm::Optional<clang::FileEntry> File,
-                          llvm::StringRef SearchPath,
-                          llvm::StringRef RelativePath,
-                          const clang::Module *Imported,
-                          clang::SrcMgr::CharacteristicKind FileType) final {
+#if LLVM_VERSION_MAJOR >= 16
+                          clang::OptionalFileEntryRef File,
+#elif LLVM_VERSION_MAJOR >= 15
+                          llvm::Optional<clang::FileEntryRef> File,
 #else
-  void InclusionDirective(clang::SourceLocation HashLoc,
-                          const clang::Token &IncludeTok,
-                          llvm::StringRef FileName, bool IsAngled,
-                          clang::CharSourceRange FilenameRange,
                           const clang::FileEntry *File,
+#endif
                           llvm::StringRef SearchPath,
                           llvm::StringRef RelativePath,
                           const clang::Module *Imported,
                           clang::SrcMgr::CharacteristicKind FileType) final {
-#endif
     if (FileType != clang::SrcMgr::C_User) {
       return;
     }
