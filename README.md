@@ -13,12 +13,12 @@ If you are using Ubuntu, you could install these 2 packages:
 $ apt install llvm-dev libclang-dev
 ```
 
-## Build
+## Build & Run
 
 ```bash
-$ mkdir build && cd build
-$ cmake .. && cmake --build .
-$ ./cpp-bundle FILE [OPTIONS]...
+$ cmake -S . -Bbuild -GNinja
+$ cmake --build build
+$ build/cpp-bundle FILE [OPTIONS]...
 ```
 
 ## Options
