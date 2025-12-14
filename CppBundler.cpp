@@ -23,6 +23,9 @@ public:
                           llvm::StringRef SearchPath,
                           llvm::StringRef RelativePath,
                           const clang::Module *Imported,
+#if LLVM_VERSION_MAJOR >= 19
+                          bool ModuleImported,
+#endif
                           clang::SrcMgr::CharacteristicKind FileType) final {
     if (FileType != clang::SrcMgr::C_User) {
       return;
