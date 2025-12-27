@@ -60,11 +60,6 @@ cmake -S . -B build -G Ninja \
 cmake --build build
 ```
 
-> [!NOTE]
-> On standard Linux (Glibc), this produces a "mostly static" binary. It statically links LLVM and the C++ runtime (`libstdc++`, `libgcc`), but still dynamically links `libc.so`, `libm.so`, etc. This usually ensures portability across most Linux distributions.
->
-> If you need a **fully static** binary (0 external dependencies), you should build on **Alpine Linux** (which uses Musl libc) or explicit static glibc flags (not recommended for general use).
-
 ## Usage
 
 ```bash
