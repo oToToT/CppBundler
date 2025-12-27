@@ -5,20 +5,70 @@ A tool to bundle custom headers into one single `.cpp` file.
 
 ## Dependencies
 
-This tool is based on LLVM/Clang, so please install them first.
+This tool is based on LLVM/Clang. You can either use system libraries or build strictly against a custom LLVM version.
 
-If you are using Ubuntu, you could install these 2 packages:
-
+### Option 1: System Dependencies (Dynamic Build)
+On Ubuntu/Debian:
 ```bash
-$ apt install llvm-dev libclang-dev
+$ sudo apt install llvm-dev libclang-dev build-essential cmake ninja-build
 ```
 
-## Build & Run
+### Option 2: Custom LLVM (Dynamic & Static Build)
+For a fully static binary, you need to build LLVM from source or use a static distribution.
+```bash
+# Example: Build LLVM 21.1.0 from source
+git clone https://github.com/llvm/llvm-project.git
+cd llvm-project
+git checkout llvmorg-21.1.0 
+cmake -S llvm -B build -G Ninja \
+    -DCMAKE_INSTALL_PREFIX=$HOME/llvm-install \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DLLVM_ENABLE_PROJECTS="clang" \
+    -DLLVM_ENABLE_ZSTD=OFF \
+    -DBUILD_SHARED_LIBS=OFF
+cmake --build build --target install
+```
+
+## Build
+
+### Dynamic Build
+**System Dependencies:**
+```bash
+cmake -S . -B build -G Ninja
+cmake --build build
+```
+
+**Custom LLVM:**
+If you have a custom LLVM installed (e.g. in `~/llvm-install`) but want to link dynamically:
+```bash
+cmake -S . -B build -G Ninja \
+    -DLLVM_DIR=$HOME/llvm-install/lib/cmake/llvm \
+    -DClang_DIR=$HOME/llvm-install/lib/cmake/clang
+
+cmake --build build
+```
+
+### Static Build
+If you built LLVM manually as above:
+```bash
+cmake -S . -B build -G Ninja \
+    -DBUILD_STATIC=ON \
+    -DUSE_STATIC_CRT=ON \
+    -DLLVM_DIR=$HOME/llvm-install/lib/cmake/llvm \
+    -DClang_DIR=$HOME/llvm-install/lib/cmake/clang
+
+cmake --build build
+```
+
+> [!NOTE]
+> On standard Linux (Glibc), this produces a "mostly static" binary. It statically links LLVM and the C++ runtime (`libstdc++`, `libgcc`), but still dynamically links `libc.so`, `libm.so`, etc. This usually ensures portability across most Linux distributions.
+>
+> If you need a **fully static** binary (0 external dependencies), you should build on **Alpine Linux** (which uses Musl libc) or explicit static glibc flags (not recommended for general use).
+
+## Usage
 
 ```bash
-$ cmake -S . -Bbuild -GNinja
-$ cmake --build build
-$ build/cpp-bundle FILE [OPTIONS]...
+$ ./build/cpp-bundle FILE [OPTIONS]...
 ```
 
 ## Options
