@@ -40,32 +40,32 @@ jobs:
             os: ubuntu-22.04
             runner: ubuntu-22.04
             cmake_flags: "-DLLVM_ENABLE_PROJECTS='clang' -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DLLVM_ENABLE_ZSTD=OFF"
-          # - target: linux-x64-musl
-          #   os: alpine
-          #   runner: ubuntu-latest
-          #   container: alpine:latest
-          #   cmake_flags: "-DLLVM_ENABLE_PROJECTS='clang' -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DLLVM_ENABLE_LIBCXX=ON -DLIBCXX_ENABLE_STATIC_ABI_LIBRARY=ON -DLLVM_ENABLE_ZSTD=OFF"
-          # - target: linux-arm64-glibc
-          #   os: ubuntu-22.04
-          #   runner: ubuntu-22.04-arm
-          #   cmake_flags: "-DLLVM_ENABLE_PROJECTS='clang' -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DLLVM_ENABLE_ZSTD=OFF"
-          # - target: linux-arm64-musl
-          #   os: alpine
-          #   runner: ubuntu-22.04-arm
-          #   container: alpine:latest
-          #   cmake_flags: "-DLLVM_ENABLE_PROJECTS='clang' -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DLLVM_ENABLE_LIBCXX=ON -DLIBCXX_ENABLE_STATIC_ABI_LIBRARY=ON -DLLVM_ENABLE_ZSTD=OFF"
-          # - target: macos-arm64
-          #   os: macos
-          #   runner: macos-14
-          #   cmake_flags: "-DLLVM_ENABLE_PROJECTS='clang' -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DLLVM_ENABLE_ZSTD=OFF"
-          # - target: windows-x64
-          #   os: windows
-          #   runner: windows-latest
-          #   cmake_flags: "-DLLVM_ENABLE_PROJECTS='clang' -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DLLVM_USE_CRT_RELEASE=MT -DLLVM_ENABLE_ZSTD=OFF"
-          # - target: windows-arm64
-          #   os: windows
-          #   runner: windows-11-arm
-          #   cmake_flags: "-DLLVM_ENABLE_PROJECTS='clang' -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DLLVM_USE_CRT_RELEASE=MT -DLLVM_ENABLE_ZSTD=OFF"
+          - target: linux-x64-musl
+            os: alpine
+            runner: ubuntu-latest
+            container: alpine:latest
+            cmake_flags: "-DLLVM_ENABLE_PROJECTS='clang' -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DLLVM_ENABLE_LIBCXX=ON -DLIBCXX_ENABLE_STATIC_ABI_LIBRARY=ON -DLLVM_ENABLE_ZSTD=OFF"
+          - target: linux-arm64-glibc
+            os: ubuntu-22.04
+            runner: ubuntu-22.04-arm
+            cmake_flags: "-DLLVM_ENABLE_PROJECTS='clang' -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DLLVM_ENABLE_ZSTD=OFF"
+          - target: linux-arm64-musl
+            os: alpine
+            runner: ubuntu-22.04-arm
+            container: alpine:latest
+            cmake_flags: "-DLLVM_ENABLE_PROJECTS='clang' -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DLLVM_ENABLE_LIBCXX=ON -DLIBCXX_ENABLE_STATIC_ABI_LIBRARY=ON -DLLVM_ENABLE_ZSTD=OFF"
+          - target: macos-arm64
+            os: macos
+            runner: macos-14
+            cmake_flags: "-DLLVM_ENABLE_PROJECTS='clang' -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DLLVM_ENABLE_ZSTD=OFF"
+          - target: windows-x64
+            os: windows
+            runner: windows-latest
+            cmake_flags: "-DLLVM_ENABLE_PROJECTS='clang' -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DLLVM_USE_CRT_RELEASE=MT -DLLVM_ENABLE_ZSTD=OFF"
+          - target: windows-arm64
+            os: windows
+            runner: windows-11-arm
+            cmake_flags: "-DLLVM_ENABLE_PROJECTS='clang' -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DLLVM_USE_CRT_RELEASE=MT -DLLVM_ENABLE_ZSTD=OFF"
 
     steps:
       - name: Set reusable variables
