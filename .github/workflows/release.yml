@@ -3,17 +3,34 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
+      version:
+        description: 'Release Version (e.g. v1.0.0)'
+        required: true
       llvm_version:
         description: 'LLVM Version Tag (e.g. llvmorg-21.1.0)'
         required: true
         default: 'llvmorg-21.1.0'
-  push:
-    tags:
-      - 'v*'
 
 jobs:
+  tag_release:
+    name: Create Release Tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ github.event.inputs.version }}
+          git push origin ${{ github.event.inputs.version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   release:
     name: Build LLVM (${{ matrix.target }})
+    needs: tag_release
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -157,8 +174,8 @@ jobs:
 
       - name: Release
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
         with:
+          tag_name: ${{ github.event.inputs.version }}
           files: ${{ env.ASSET_PATH }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
