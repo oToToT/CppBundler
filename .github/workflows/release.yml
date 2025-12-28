@@ -1,0 +1,164 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      llvm_version:
+        description: 'LLVM Version Tag (e.g. llvmorg-21.1.0)'
+        required: true
+        default: 'llvmorg-21.1.0'
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Build LLVM (${{ matrix.target }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-x64-glibc
+            os: ubuntu-22.04
+            runner: ubuntu-22.04
+            cmake_flags: "-DLLVM_ENABLE_PROJECTS='clang' -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DLLVM_ENABLE_ZSTD=OFF"
+          # - target: linux-x64-musl
+          #   os: alpine
+          #   runner: ubuntu-latest
+          #   container: alpine:latest
+          #   cmake_flags: "-DLLVM_ENABLE_PROJECTS='clang' -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DLLVM_ENABLE_LIBCXX=ON -DLIBCXX_ENABLE_STATIC_ABI_LIBRARY=ON -DLLVM_ENABLE_ZSTD=OFF"
+          # - target: linux-arm64-glibc
+          #   os: ubuntu-22.04
+          #   runner: ubuntu-22.04-arm
+          #   cmake_flags: "-DLLVM_ENABLE_PROJECTS='clang' -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DLLVM_ENABLE_ZSTD=OFF"
+          # - target: linux-arm64-musl
+          #   os: alpine
+          #   runner: ubuntu-22.04-arm
+          #   container: alpine:latest
+          #   cmake_flags: "-DLLVM_ENABLE_PROJECTS='clang' -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DLLVM_ENABLE_LIBCXX=ON -DLIBCXX_ENABLE_STATIC_ABI_LIBRARY=ON -DLLVM_ENABLE_ZSTD=OFF"
+          # - target: macos-arm64
+          #   os: macos
+          #   runner: macos-14
+          #   cmake_flags: "-DLLVM_ENABLE_PROJECTS='clang' -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DLLVM_ENABLE_ZSTD=OFF"
+          # - target: windows-x64
+          #   os: windows
+          #   runner: windows-latest
+          #   cmake_flags: "-DLLVM_ENABLE_PROJECTS='clang' -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DLLVM_USE_CRT_RELEASE=MT -DLLVM_ENABLE_ZSTD=OFF"
+          # - target: windows-arm64
+          #   os: windows
+          #   runner: windows-11-arm
+          #   cmake_flags: "-DLLVM_ENABLE_PROJECTS='clang' -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DLLVM_USE_CRT_RELEASE=MT -DLLVM_ENABLE_ZSTD=OFF"
+
+    steps:
+      - name: Set reusable variables
+        shell: bash
+        run: |
+          echo "LLVM_TAG=${{ github.event.inputs.llvm_version || 'llvmorg-21.1.0' }}" >> $GITHUB_ENV
+          echo "INSTALL_DIR=${{ github.workspace }}/llvm-install" >> $GITHUB_ENV
+
+      - name: Checkout LLVM
+        uses: actions/checkout@v4
+        with:
+          repository: llvm/llvm-project
+          ref: ${{ env.LLVM_TAG }}
+          path: llvm-project
+
+      - name: Install Dependencies (Linux/Alpine)
+        if: contains(matrix.target, 'linux')
+        run: |
+          if [ -f /etc/alpine-release ]; then
+            apk add --no-cache build-base cmake ninja python3 linux-headers git
+          else
+            sudo apt-get update && sudo apt-get install -y build-essential cmake ninja-build python3
+          fi
+        shell: sh
+
+      - name: Install Dependencies (Windows)
+        if: contains(matrix.target, 'windows')
+        run: choco install ninja
+        shell: pwsh
+
+      - name: Install Dependencies (Mac)
+        if: contains(matrix.target, 'macos')
+        run: brew install cmake ninja
+
+      - name: Cache LLVM Build
+        id: cache-llvm
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.INSTALL_DIR }}
+          key: llvm-${{ env.LLVM_TAG }}-${{ matrix.target }}
+
+      - name: Configure CMake
+        if: steps.cache-llvm.outputs.cache-hit != 'true'
+        run: |
+          cmake -S llvm-project/llvm -B build \
+            -G Ninja \
+            -DCMAKE_INSTALL_PREFIX=${{ env.INSTALL_DIR }} \
+            ${{ matrix.cmake_flags }}
+        shell: bash
+
+      - name: Build and Install LLVM
+        if: steps.cache-llvm.outputs.cache-hit != 'true'
+        run: |
+          cmake --build build --target install
+        shell: bash
+
+      - name: Checkout CppBundler
+        uses: actions/checkout@v4
+        with:
+          path: CppBundler
+
+      - name: Build CppBundler
+        run: |
+          mkdir build-tool
+          cd build-tool
+          
+          EXTRA_FLAGS=""
+          if [[ "${{ matrix.target }}" == *"musl"* ]]; then
+             EXTRA_FLAGS="-DCMAKE_EXE_LINKER_FLAGS='-static' -DUSE_STATIC_CRT=ON"
+          elif [[ "${{ matrix.target }}" == *"linux"* ]]; then
+             EXTRA_FLAGS="-DUSE_STATIC_CRT=ON"
+          elif [[ "${{ matrix.target }}" == *"windows"* ]]; then
+             EXTRA_FLAGS="-DUSE_STATIC_CRT=ON"
+          fi
+
+          echo "Building with flags: $EXTRA_FLAGS"
+
+          cmake -S ../CppBundler -B . \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_STATIC=ON \
+            -DLLVM_DIR=${{ env.INSTALL_DIR }}/lib/cmake/llvm \
+            -DClang_DIR=${{ env.INSTALL_DIR }}/lib/cmake/clang \
+            $EXTRA_FLAGS
+            
+          cmake --build .
+        shell: bash
+
+      - name: Package Release Asset
+        run: |
+          BINARY_NAME="cpp-bundle"
+          if [[ "${{ matrix.target }}" == *"windows"* ]]; then
+            BINARY_NAME="cpp-bundle.exe"
+          fi
+          
+          # Find the binary in build tree
+          find build-tool -name "$BINARY_NAME" -type f -exec cp {} ./ \;
+          
+          ASSET_NAME="cpp-bundle-${{ matrix.target }}"
+          if [[ "${{ matrix.target }}" == *"windows"* ]]; then
+            ASSET_NAME="$ASSET_NAME.exe"
+          fi
+          mv "$BINARY_NAME" "$ASSET_NAME"
+          echo "ASSET_PATH=$(pwd)/$ASSET_NAME" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: ${{ env.ASSET_PATH }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
